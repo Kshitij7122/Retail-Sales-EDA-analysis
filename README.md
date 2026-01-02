@@ -1,4 +1,4 @@
-# Retail Sales Analysis SQL Project
+# Retail Sales Exploratory Data Analysis (EDA) | SQL Project
 
 ## Project Overview
 
