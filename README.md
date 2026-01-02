@@ -136,63 +136,108 @@ group by 1, 2
 order by 1;
 ```
 
-7. **Write a SQL query to calculate the average sale for each month. Find out best selling month in each year**:
+8. **Write a SQL query to calculate the average sale for each month. Find out best selling month in each year**:
 ```sql
-SELECT 
-       year,
-       month,
-    avg_sale
-FROM 
-(    
-SELECT 
-    EXTRACT(YEAR FROM sale_date) as year,
-    EXTRACT(MONTH FROM sale_date) as month,
-    AVG(total_sale) as avg_sale,
-    RANK() OVER(PARTITION BY EXTRACT(YEAR FROM sale_date) ORDER BY AVG(total_sale) DESC) as rank
-FROM retail_sales
-GROUP BY 1, 2
-) as t1
-WHERE rank = 1
+-- 1st Method -->
+
+select year(transaction_date) as 'Year', monthname(transaction_date) as 'Month', month(transaction_date) as 'Month No.', 
+round(avg(total_sale),3) as 'Average Sales Amount', sum(total_sale) as 'Net Sales Amount' 
+from Retail_Sales
+group by 1,2,3
+order by 1,3; 
+
+-- Best selling month of yeach year based on net sales amount - 
+select * from (select year(transaction_date) as 'Year', monthname(transaction_date) as 'Month', month(transaction_date) as 'Month No.', 
+round(avg(total_sale),3) as 'Average Sales Amount', sum(total_sale) as 'Net Sales Amount' 
+from Retail_Sales
+group by 1,2,3
+order by 5 desc) as alias1
+limit 2;
+
+
+-- 2nd Method (by using rank (windows function)) -->
+
+select year(transaction_date) as 'Year', monthname(transaction_date) as 'Month', month(transaction_date) as 'Month No.', 
+round(avg(total_sale),3) as 'Average Sales Amount', sum(total_sale) as 'Net Sales Amount',
+rank() over(partition by year(transaction_date) order by sum(total_sale) desc) as 'rank'
+from Retail_Sales
+group by 1,2,3; -- this query gives rank of each month in each year and unless used 'order by', orders them according to the rank.
+
+-- Best selling month of yeach year based on net sales amount - 
+select Year, Month, Net_Sales_Amount from (select year(transaction_date) as 'Year', monthname(transaction_date) as 'Month', month(transaction_date) as 'Month No.', 
+round(avg(total_sale),3) as 'Average Sales Amount', sum(total_sale) as Net_Sales_Amount,
+rank() over(partition by year(transaction_date) order by sum(total_sale) desc) as 'Ranks'
+from Retail_Sales
+group by 1,2,3) as alias1
+where ranks = '1';
 ```
 
-8. **Write a SQL query to find the top 5 customers based on the highest total sales **:
+9. **Write a SQL query to find the top 5 customers based on the highest total sales**:
 ```sql
-SELECT 
-    customer_id,
-    SUM(total_sale) as total_sales
-FROM retail_sales
-GROUP BY 1
-ORDER BY 2 DESC
-LIMIT 5
+select customer_id as 'Customer ID', sum(total_sale) as 'Total Sales'
+from Retail_Sales
+group by 1
+order by 2 desc
+limit 5;
 ```
 
-9. **Write a SQL query to find the number of unique customers who purchased items from each category.**:
+10. **Write a SQL query to find the number of unique customers who purchased items from each category**:
 ```sql
-SELECT 
-    category,    
-    COUNT(DISTINCT customer_id) as cnt_unique_cs
-FROM retail_sales
-GROUP BY category
+select Product_Category as 'Product_Category', count(distinct customer_id) as 'Total Customers'
+from Retail_Sales 
+group by 1
+order by 1;
 ```
 
-10. **Write a SQL query to create each shift and number of orders (Example Morning <12, Afternoon Between 12 & 17, Evening >17)**:
+11. **Write a SQL query to create each shift and number of orders (Example Morning <=12, Afternoon Between 12 & 17, Evening >17)**:
 ```sql
-WITH hourly_sale
-AS
-(
-SELECT *,
-    CASE
-        WHEN EXTRACT(HOUR FROM sale_time) < 12 THEN 'Morning'
-        WHEN EXTRACT(HOUR FROM sale_time) BETWEEN 12 AND 17 THEN 'Afternoon'
-        ELSE 'Evening'
-    END as shift
-FROM retail_sales
+select
+case
+when hour(transaction_time) < 12 then 'Morning'
+when hour(transaction_time) between 12 and 17 then 'Afternoon' 
+else 'Evening'
+end as 'Shift', count(transaction_id)
+from Retail_Sales 
+group by 1;
+
+-- now for particular dates the shiftwise sales are -->
+select transaction_date as 'Transaction Date',
+case
+when hour(transaction_time) < 12 then 'Morning'
+when hour(transaction_time) between 12 and 17 then 'Afternoon' 
+else 'Evening'
+end as 'Shift', count(transaction_id)
+from Retail_Sales 
+group by 1, 2 order by 1;
+
+-- Another Method using CTE(common table expression as it's complicated to apply group by in columns in the same complex query
+with shift_wise_sales
+as (select *, case
+when hour(transaction_time) < 12 then 'Morning'
+when hour(transaction_time) between 12 and 17 then 'Afternoon' 
+else 'Evening'
+end as 'Shift', count(transaction_id)
+from Retail_Sales
+group by 1
 )
-SELECT 
-    shift,
-    COUNT(*) as total_orders    
-FROM hourly_sale
-GROUP BY shift
+select Shift, count(*) as 'Total Orders'
+from shift_wise_sales
+group by 1;
+
+-- now for particular dates the shiftwise sales are -->
+with shift_wise_sales
+as (select *, case
+when hour(transaction_time) < 12 then 'Morning'
+when hour(transaction_time) between 12 and 17 then 'Afternoon' 
+else 'Evening'
+end as 'Shift', count(transaction_id)
+from Retail_Sales
+group by 1
+)
+select transaction_date as 'Transaction Date', Shift, count(*) as 'Total Orders'
+from shift_wise_sales
+group by 1,2
+order by 1;
 ```
 
 ## Findings
@@ -219,17 +264,10 @@ This project serves as a comprehensive introduction to SQL for data analysts, co
 3. **Run the Queries**: Use the SQL queries provided in the `analysis_queries.sql` file to perform your analysis.
 4. **Explore and Modify**: Feel free to modify the queries to explore different aspects of the dataset or answer additional business questions.
 
-## Author - Zero Analyst
+## Author - KSHITIJ
 
 This project is part of my portfolio, showcasing the SQL skills essential for data analyst roles. If you have any questions, feedback, or would like to collaborate, feel free to get in touch!
 
-### Stay Updated and Join the Community
 
-For more content on SQL, data analysis, and other data-related topics, make sure to follow me on social media and join our community:
-
-- **YouTube**: [Subscribe to my channel for tutorials and insights](https://www.youtube.com/@zero_analyst)
-- **Instagram**: [Follow me for daily tips and updates](https://www.instagram.com/zero_analyst/)
-- **LinkedIn**: [Connect with me professionally](https://www.linkedin.com/in/najirr)
-- **Discord**: [Join our community to learn and grow together](https://discord.gg/36h5f2Z5PK)
 
 Thank you for your support, and I look forward to connecting with you!
