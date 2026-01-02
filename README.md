@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-**Project Title**: Retail Sales Analysis  
-**Level**: Beginner  
-**Database**: `p1_retail_db`
+**Project Title**: Retail Sales Exploratory Data Analysis (EDA) 
+**Level**: Intermediate  
+**Database**: `BR2`
 
 This project is designed to demonstrate SQL skills and techniques typically used by data analysts to explore, clean, and analyze retail sales data. The project involves setting up a retail sales database, performing exploratory data analysis (EDA), and answering specific business questions through SQL queries. This project is ideal for those who are starting their journey in data analysis and want to build a solid foundation in SQL.
 
@@ -19,25 +19,25 @@ This project is designed to demonstrate SQL skills and techniques typically used
 
 ### 1. Database Setup
 
-- **Database Creation**: The project starts by creating a database named `p1_retail_db`.
-- **Table Creation**: A table named `retail_sales` is created to store the sales data. The table structure includes columns for transaction ID, sale date, sale time, customer ID, gender, age, product category, quantity sold, price per unit, cost of goods sold (COGS), and total sale amount.
+- **Database Creation**: The project starts by creating a database named `BR2`.
+- **Table Creation**: A table named `retail_sales` is created to store the sales data. The table structure includes columns for transaction ID, transaction date, transaction time, customer ID, gender, age, product category, quantity sold, price per unit, cost of goods sold (COGS), and total sale amount.
 
 ```sql
-CREATE DATABASE p1_retail_db;
+CREATE DATABASE BR2;
 
 CREATE TABLE retail_sales
 (
-    transactions_id INT PRIMARY KEY,
-    sale_date DATE,	
-    sale_time TIME,
-    customer_id INT,	
-    gender VARCHAR(10),
-    age INT,
-    category VARCHAR(35),
-    quantity INT,
-    price_per_unit FLOAT,	
-    cogs FLOAT,
-    total_sale FLOAT
+Transactions_ID INT primary key,
+Transaction_date date,
+Transaction_time time,
+Customer_ID INT,
+Age INT, 
+Gender varchar(15),
+Product_Category varchar(50),
+Quantity INT,
+CP_Per_Unit float,
+SP_Per_Unit float, 
+Total_Sale float
 );
 ```
 
@@ -53,79 +53,87 @@ SELECT COUNT(*) FROM retail_sales;
 SELECT COUNT(DISTINCT customer_id) FROM retail_sales;
 SELECT DISTINCT category FROM retail_sales;
 
+-- Data Cleaning
+
 SELECT * FROM retail_sales
-WHERE 
-    sale_date IS NULL OR sale_time IS NULL OR customer_id IS NULL OR 
-    gender IS NULL OR age IS NULL OR category IS NULL OR 
-    quantity IS NULL OR price_per_unit IS NULL OR cogs IS NULL;
+WHERE
+      Transaction_date is null or Transaction_time is null or customer_id is null or gender is null or age is null or Product_Category is null or Quantity is null or 
+      CP_Per_Unit is null or SP_Per_Unit is null or Total_Sale is null;
 
 DELETE FROM retail_sales
-WHERE 
-    sale_date IS NULL OR sale_time IS NULL OR customer_id IS NULL OR 
-    gender IS NULL OR age IS NULL OR category IS NULL OR 
-    quantity IS NULL OR price_per_unit IS NULL OR cogs IS NULL;
+WHERE
+      Transaction_date is null or Transaction_time is null or customer_id is null or gender is null or age is null or Product_Category is null or Quantity is null or 
+      CP_Per_Unit is null or SP_Per_Unit is null or Total_Sale is null;
+
+-- Exploration
+
+select count(transaction_id) from retail_sales; -- 1987
+-- how many customers we have -->
+select count(distinct customer_id) from Retail_Sales; -- 155
+-- how many categories we have -->
+select count(distinct product_category) from Retail_Sales;
+select product_category, count(product_category) from Retail_Sales group by product_category order by count(product_category) desc;
 ```
 
-### 3. Data Analysis & Findings
+### 3. Data Analysis & Findings (Business Key Problems and Answers)
 
 The following SQL queries were developed to answer specific business questions:
 
-1. **Write a SQL query to retrieve all columns for sales made on '2022-11-05**:
+1. **Write an sql query to retrieve all columns for sales made on 2022-11-05**:
 ```sql
 SELECT *
 FROM retail_sales
-WHERE sale_date = '2022-11-05';
+WHERE transaction_date = '2022-11-05';
 ```
 
-2. **Write a SQL query to retrieve all transactions where the category is 'Clothing' and the quantity sold is more than 4 in the month of Nov-2022**:
+2. **Write an sql query to calculate Total Sales on '2022-11-05'**:
 ```sql
-SELECT 
-  *
-FROM retail_sales
-WHERE 
-    category = 'Clothing'
-    AND 
-    TO_CHAR(sale_date, 'YYYY-MM') = '2022-11'
-    AND
-    quantity >= 4
+select transaction_date as 'Date of Transaction', sum(total_sale) as 'Total Sales'
+from Retail_Sales
+where transaction_date = "2023-11-05"
+group by 1; 
 ```
 
-3. **Write a SQL query to calculate the total sales (total_sale) for each category.**:
+3. **Write an sql query retrieve all transactions for the "clothing" category, and the quantity sold is more than 3 in the month of nov-2022**:
 ```sql
-SELECT 
-    category,
-    SUM(total_sale) as net_sale,
-    COUNT(*) as total_orders
-FROM retail_sales
-GROUP BY 1
+select * from Retail_Sales
+where product_category = "clothing" and quantity > 3 and monthname(transaction_date) = 'november'
+order by transaction_id asc;
+
+-- second method -->
+
+select * from Retail_Sales
+where product_category = "clothing" and quantity > 3 and transaction_date between '2022-11-01' and '2022-11-30'
+order by transaction_id asc;
 ```
 
-4. **Write a SQL query to find the average age of customers who purchased items from the 'Beauty' category.**:
+4. **Write a SQL query to calculate the total sales (total_sale) for each category.**:
 ```sql
-SELECT
-    ROUND(AVG(age), 2) as avg_age
-FROM retail_sales
-WHERE category = 'Beauty'
+select product_category as 'Product_Category', sum(total_sale) as 'Net Sales Amount', count(transaction_id) as 'Total no. of orders'
+from Retail_Sales group by 1;
 ```
 
-5. **Write a SQL query to find all transactions where the total_sale is greater than 1000.**:
+5. **Write an sql query to find average age of customers who purchased items from the 'Beauty' category**:
 ```sql
-SELECT * FROM retail_sales
-WHERE total_sale > 1000
+select product_category as 'Product_Category', round(avg(age),3) as 'Average Age of Customers'
+from Retail_Sales 
+where product_category = 'Beauty' group by 1;
 ```
 
-6. **Write a SQL query to find the total number of transactions (transaction_id) made by each gender in each category.**:
+6. **Write an sql query to find all the transactions where total sale is greater than 1000**:
 ```sql
-SELECT 
-    category,
-    gender,
-    COUNT(*) as total_trans
-FROM retail_sales
-GROUP 
-    BY 
-    category,
-    gender
-ORDER BY 1
+select * from Retail_Sales
+where total_sale > 1000
+order by transaction_id asc;
+
+```
+
+7. **Write a SQL query to find the total number of transactions (transaction_id) made by each gender in each category**:
+```sql
+select product_category as 'Product_Category', Gender, count(transaction_id) as 'Total Transactions'
+from Retail_Sales
+group by 1, 2
+order by 1;
 ```
 
 7. **Write a SQL query to calculate the average sale for each month. Find out best selling month in each year**:
